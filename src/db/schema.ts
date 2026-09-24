@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { PROSPECT_STATUSES } from "../lib/prospect-status";
 
 const id = () =>
   text("id")
@@ -29,8 +30,7 @@ export const users = sqliteTable("users", {
 
 /* ───────────────────────── Prospects (mini-CRM) ───────────────────────── */
 
-export const PROSPECT_STATUSES = ["a_contacter", "contacte", "interesse", "client", "pas_interesse"] as const;
-export type ProspectStatus = (typeof PROSPECT_STATUSES)[number];
+export { PROSPECT_STATUSES, type ProspectStatus } from "../lib/prospect-status";
 
 export const PLACE_SOURCES = ["osm", "google"] as const;
 

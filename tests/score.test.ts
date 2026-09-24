@@ -54,6 +54,11 @@ describe("computeVisibilityScore", () => {
     expect(result.level).toBe("critical");
   });
 
+  it("classe en « très faible » un commerce OpenStreetMap sans site, sans téléphone ni horaires", () => {
+    const result = computeVisibilityScore({ ...base, source: "osm", website: null, phone: null, hasOpeningHours: false, rating: null, reviewCount: null, photoCount: null });
+    expect(result.level).toBe("critical");
+  });
+
   it("ne pénalise pas les informations inconnues (OpenStreetMap)", () => {
     const result = computeVisibilityScore({ ...base, source: "osm", rating: null, reviewCount: null, photoCount: null });
     expect(result.score).toBe(100);
@@ -83,9 +88,10 @@ describe("computeVisibilityScore", () => {
 describe("scoreLevel", () => {
   it("découpe les niveaux", () => {
     expect(scoreLevel(0)).toBe("critical");
-    expect(scoreLevel(34)).toBe("critical");
-    expect(scoreLevel(35)).toBe("low");
-    expect(scoreLevel(60)).toBe("medium");
-    expect(scoreLevel(80)).toBe("good");
+    expect(scoreLevel(39)).toBe("critical");
+    expect(scoreLevel(40)).toBe("low");
+    expect(scoreLevel(65)).toBe("medium");
+    expect(scoreLevel(89)).toBe("medium");
+    expect(scoreLevel(90)).toBe("good");
   });
 });

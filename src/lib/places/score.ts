@@ -46,9 +46,9 @@ export const PENALTIES = {
 
 export const LEVELS: Record<ScoreLevel, { label: string; short: string; color: string; min: number }> = {
   critical: { label: "Présence en ligne très faible", short: "Très faible", color: "#dc2626", min: 0 },
-  low: { label: "Présence en ligne faible", short: "Faible", color: "#ea580c", min: 35 },
-  medium: { label: "Présence en ligne moyenne", short: "Moyenne", color: "#ca8a04", min: 60 },
-  good: { label: "Bonne présence en ligne", short: "Bonne", color: "#16a34a", min: 80 },
+  low: { label: "Présence en ligne faible", short: "Faible", color: "#ea580c", min: 40 },
+  medium: { label: "Présence en ligne moyenne", short: "Moyenne", color: "#ca8a04", min: 65 },
+  good: { label: "Bonne présence en ligne", short: "Bonne", color: "#16a34a", min: 90 },
 };
 
 export function scoreLevel(score: number): ScoreLevel {
