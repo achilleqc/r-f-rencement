@@ -60,7 +60,12 @@ export interface PlacesProvider {
 
 /** Erreur à afficher telle quelle à l'utilisateur. */
 export class ProviderError extends Error {
-  constructor(message: string, readonly status?: number) {
+  constructor(
+    message: string,
+    readonly status?: number,
+    /** Détail technique (serveurs essayés et réponses), affiché en petit pour le dépannage. */
+    readonly details?: string,
+  ) {
     super(message);
     this.name = "ProviderError";
   }

@@ -11,6 +11,8 @@ import { geocode, monthlyApiUsage, searchPlaces } from "@/lib/search";
 import { parseSearchParams, type ParsedSearch } from "@/lib/search-params";
 
 export const metadata: Metadata = { title: "Recherche" };
+/** Une grande zone peut demander plusieurs essais auprès des serveurs OpenStreetMap. */
+export const maxDuration = 60;
 
 type Search = NonNullable<ParsedSearch["search"]>;
 
@@ -23,7 +25,7 @@ async function loadResults(search: Search, userId: string) {
       locationLabel = "votre position";
     } else {
       const found = await geocode(search.q, userId);
-      if (!found) return { error: `Adresse introuvable : « ${search.q} ». Précisez la ville ou le code postal.` };
+      if (!found) return { error: `Adresse introuvable : « ${search.q} ». Précisez la ville ou le code postal.`, details: undefined };
       center = { lat: found.lat, lng: found.lng };
       locationLabel = found.label;
     }
@@ -32,9 +34,8 @@ async function loadResults(search: Search, userId: string) {
     return { center, locationLabel, result, saved };
   } catch (error) {
     console.error("[recherche]", error);
-    return {
-      error: error instanceof ProviderError ? error.message : "La recherche a échoué. Réessayez dans un instant.",
-    };
+    if (error instanceof ProviderError) return { error: error.message, details: error.details };
+    return { error: "La recherche a échoué. Réessayez dans un instant.", details: error instanceof Error ? error.message : undefined };
   }
 }
 
@@ -42,9 +43,13 @@ async function Results({ search, query, userId }: { search: Search; query: strin
   const data = await loadResults(search, userId);
   if ("error" in data) {
     return (
-      <p role="alert" className="flex items-start gap-2 rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger">
-        <TriangleAlert className="mt-0.5 size-4 shrink-0" /> {data.error}
-      </p>
+      <div role="alert" className="flex items-start gap-2 rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger">
+        <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+        <div className="min-w-0">
+          <p>{data.error}</p>
+          {data.details && <p className="mt-1 text-xs break-words opacity-75">Détail : {data.details}</p>}
+        </div>
+      </div>
     );
   }
   const { center, locationLabel, result, saved } = data;

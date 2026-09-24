@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import fixture from "./fixtures/overpass.json";
-import { buildOverpassQuery, createOsmProvider, normalizeOsmElement, type OverpassElement } from "@/lib/places/osm";
+import { buildOverpassQuery, createOsmProvider, mergeOsmRules, normalizeOsmElement, type OverpassElement } from "@/lib/places/osm";
 
 const montreal = { lat: 45.5017, lng: -73.5673 };
 
@@ -13,19 +13,49 @@ afterEach(() => {
 });
 
 describe("buildOverpassQuery", () => {
-  it("cherche autour du point, uniquement les éléments nommés", () => {
+  it("cherche dans le carré englobant, uniquement les éléments nommés", () => {
     const query = buildOverpassQuery({ center: montreal, radius: 800, category: "alimentation" });
-    expect(query).toContain("(around:800,45.501700,-73.567300)");
+    const bbox = /\[bbox:([-\d.]+),([-\d.]+),([-\d.]+),([-\d.]+)\]/.exec(query)!;
+    const [south, west, north, east] = bbox.slice(1).map(Number);
+    expect(south).toBeLessThan(montreal.lat);
+    expect(north).toBeGreaterThan(montreal.lat);
+    expect(west).toBeLessThan(montreal.lng);
+    expect(east).toBeGreaterThan(montreal.lng);
+    expect((north - south) * 111_320).toBeCloseTo(1600, -1);
+    expect(query).not.toContain("around");
     expect(query).toContain('["shop"~"^(bakery|');
     expect(query).toContain('["name"]');
     expect(query).toMatch(/out tags center \d+;$/);
   });
 
-  it("réunit toutes les catégories pour « tous »", () => {
+  it("regroupe les règles par tag pour « tous » (requête plus rapide)", () => {
     const query = buildOverpassQuery({ center: montreal, radius: 500, category: "tous" });
-    expect(query).toContain('["amenity"~"^(restaurant|');
+    expect(query).toContain('nwr["shop"]["shop"!~"^(vacant|no)$"]["name"];');
     expect(query).toContain('["craft"]');
     expect(query).toContain('["tourism"~"^(hotel|');
+    expect(query.match(/nwr\["amenity"/g)).toHaveLength(1);
+    expect(query.match(/nwr\["shop"/g)).toHaveLength(1);
+  });
+});
+
+describe("mergeOsmRules", () => {
+  it("réunit les valeurs d'un même tag", () => {
+    expect(mergeOsmRules([{ key: "amenity", values: ["cafe"] }, { key: "amenity", values: ["bar", "cafe"] }])).toEqual([
+      { key: "amenity", values: ["cafe", "bar"] },
+    ]);
+  });
+
+  it("une règle « sauf » perd les exclusions reprises par une autre règle", () => {
+    expect(
+      mergeOsmRules([
+        { key: "shop", exclude: ["bakery", "vacant"] },
+        { key: "shop", values: ["bakery"] },
+      ]),
+    ).toEqual([{ key: "shop", exclude: ["vacant"] }]);
+  });
+
+  it("une règle sans condition l'emporte", () => {
+    expect(mergeOsmRules([{ key: "craft" }, { key: "craft", values: ["plumber"] }])).toEqual([{ key: "craft" }]);
   });
 });
 
@@ -79,6 +109,14 @@ describe("createOsmProvider", () => {
     expect((init.headers as Record<string, string>)["User-Agent"]).toContain("ProspectionLocale");
   });
 
+  it("ne garde que les commerces situés dans le rayon", async () => {
+    const far = { type: "node", id: 999, lat: montreal.lat + 0.05, lon: montreal.lng, tags: { name: "Loin", shop: "bakery" } };
+    const fetchFn = vi.fn(async () => jsonResponse({ elements: [...fixture.elements, far] }));
+    const provider = createOsmProvider(fetchFn as unknown as typeof fetch);
+    const outcome = await provider.searchNearby({ center: montreal, radius: 1000, category: "tous" });
+    expect(outcome.places.map((p) => p.name)).not.toContain("Loin");
+  });
+
   it("essaie le serveur suivant quand le premier est saturé", async () => {
     vi.stubEnv("OVERPASS_URL", "https://un.example/api,https://deux.example/api");
     const fetchFn = vi.fn(async (url: string) => (url.startsWith("https://un.") ? new Response("busy", { status: 429 }) : jsonResponse(fixture)));
@@ -88,11 +126,43 @@ describe("createOsmProvider", () => {
     expect(outcome.places.length).toBe(4);
   });
 
-  it("renvoie un message clair quand tous les serveurs échouent", async () => {
-    vi.stubEnv("OVERPASS_URL", "https://un.example/api");
-    const fetchFn = vi.fn(async () => new Response("timeout", { status: 504 }));
+  it("passe au serveur suivant après un délai dépassé", async () => {
+    vi.stubEnv("OVERPASS_URL", "https://un.example/api,https://deux.example/api");
+    const fetchFn = vi.fn(async (url: string) => {
+      if (url.startsWith("https://un.")) throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
+      return jsonResponse(fixture);
+    });
     const provider = createOsmProvider(fetchFn as unknown as typeof fetch);
-    await expect(provider.searchNearby({ center: montreal, radius: 1000, category: "tous" })).rejects.toThrow(/réduisez le rayon/);
+    const outcome = await provider.searchNearby({ center: montreal, radius: 1000, category: "tous" });
+    expect(outcome.places.length).toBe(4);
+  });
+
+  it("explique l'échec le plus parlant et détaille chaque serveur", async () => {
+    vi.stubEnv("OVERPASS_URL", "https://un.example/api,https://deux.example/api,https://trois.example/api");
+    const fetchFn = vi.fn(async (url: string) => {
+      if (url.startsWith("https://un.")) return new Response("busy", { status: 429 });
+      if (url.startsWith("https://deux.")) throw new DOMException("timeout", "TimeoutError");
+      throw new TypeError("fetch failed", { cause: { code: "ECONNRESET" } });
+    });
+    const provider = createOsmProvider(fetchFn as unknown as typeof fetch);
+    const error = await provider.searchNearby({ center: montreal, radius: 5000, category: "tous" }).catch((e) => e);
+    expect(error.message).toMatch(/Réduisez le rayon/);
+    expect(error.details).toBe("un.example : erreur 429 · deux.example : délai dépassé · trois.example : ECONNRESET");
+  });
+
+  it("renvoie un message clair quand OpenStreetMap signale un dépassement de temps", async () => {
+    vi.stubEnv("OVERPASS_URL", "https://un.example/api");
+    const fetchFn = vi.fn(async () => jsonResponse({ elements: [], remark: 'runtime error: Query timed out in "query" at line 3 after 26 seconds.' }));
+    const provider = createOsmProvider(fetchFn as unknown as typeof fetch);
+    await expect(provider.searchNearby({ center: montreal, radius: 5000, category: "tous" })).rejects.toThrow(/Réduisez le rayon/);
+  });
+
+  it("n'insiste pas quand la requête est refusée (400)", async () => {
+    vi.stubEnv("OVERPASS_URL", "https://un.example/api,https://deux.example/api");
+    const fetchFn = vi.fn(async () => new Response("bad", { status: 400 }));
+    const provider = createOsmProvider(fetchFn as unknown as typeof fetch);
+    await expect(provider.searchNearby({ center: montreal, radius: 1000, category: "tous" })).rejects.toThrow(/requête invalide/);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
   });
 
   it("relit un commerce par son identifiant", async () => {
