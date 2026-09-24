@@ -10,9 +10,14 @@ import { dirname } from "node:path";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { migrate } from "drizzle-orm/libsql/migrator";
-import { databaseAuthToken, databaseUrl } from "../src/db";
+import { databaseAuthToken, databaseMissingOnVercel, databaseUrl } from "../src/db/config";
 
 async function main() {
+  if (databaseMissingOnVercel()) {
+    console.warn("\n⚠ Aucune base Turso n'est connectée à ce projet Vercel : migrations ignorées.");
+    console.warn("  Le site affichera la marche à suivre (onglet Storage → Turso, puis Redeploy).\n");
+    return;
+  }
   const url = databaseUrl();
   if (url.startsWith("file:")) mkdirSync(dirname(url.slice("file:".length)), { recursive: true });
 

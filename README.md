@@ -18,14 +18,14 @@ Prérequis : [Node.js](https://nodejs.org) 20.9 ou plus récent.
 
 ```bash
 npm install
-cp .env.example .env        # puis ouvrez .env et changez AUTH_SECRET
+cp .env.example .env
 npm run db:migrate          # crée la base SQLite dans data/app.db
 npm run dev
 ```
 
 Ouvrez http://localhost:3000 : vous arrivez sur la page de connexion. Cliquez sur **« Créer un compte »** : le **premier compte** peut toujours être créé, ensuite les inscriptions sont fermées (voir `ALLOW_SIGNUP`).
 
-> Générer un `AUTH_SECRET` : `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`
+> `AUTH_SECRET` (clé des sessions) est facultatif en développement et sur Vercel avec Turso. Il est obligatoire pour `npm start` sans Turso. Le générer : `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`
 
 ---
 
@@ -94,18 +94,17 @@ Les **chaînes et franchises** (enseigne connue dans OSM, ou plusieurs commerces
 
 ## 4. Mettre en ligne sur Vercel (gratuit)
 
-La base de données en production est une base **Turso** (SQLite en ligne, offre gratuite).
+Aucune variable à saisir : la base de données Turso se branche en quelques clics et la clé des sessions en est dérivée automatiquement.
 
-1. **Poussez le code sur GitHub** (déjà fait si vous lisez ceci sur GitHub).
-2. Sur https://vercel.com → **Add New… → Project** → importez le dépôt `prospection-locale`.
-3. Avant de déployer, onglet **Storage** du projet (ou **Integrations**) → ajoutez **Turso** et créez une base : les variables `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` sont ajoutées automatiquement.
-   *Sans l'intégration :* créez une base sur https://turso.tech et ajoutez vous-même `DATABASE_URL` (`libsql://…`) et `DATABASE_AUTH_TOKEN`.
-4. **Settings → Environment Variables** : ajoutez
-   - `AUTH_SECRET` : une longue chaîne aléatoire (obligatoire) ;
-   - `OSM_CONTACT_EMAIL` : votre e-mail ;
-   - `GOOGLE_PLACES_API_KEY` si vous en avez une.
-5. **Deploy**. Les tables sont créées automatiquement à chaque déploiement (`npm run db:migrate`).
-6. Ouvrez le site et **créez tout de suite votre compte** sur `/inscription` : c'est le premier compte, les inscriptions se ferment ensuite.
+1. Sur https://vercel.com, connectez-vous **avec votre compte GitHub**.
+2. **Add New… → Project** → à côté du dépôt `prospection-locale`, cliquez **Import**, puis **Deploy**.
+3. Ouvrez le site : il affiche « Dernière étape : connecter la base de données ». Dans le projet Vercel, onglet **Storage** → **Turso** → créez la base et connectez-la au projet.
+4. Onglet **Deployments** → menu **⋯** du dernier déploiement → **Redeploy**. Les tables sont créées automatiquement.
+5. Ouvrez le site et **créez tout de suite votre compte** : c'est le premier compte, les inscriptions se ferment ensuite.
+
+Facultatif, dans **Settings → Environment Variables** : `OSM_CONTACT_EMAIL` (votre e-mail, demandé par OpenStreetMap), `GOOGLE_PLACES_API_KEY`, `AUTH_SECRET` (sinon dérivée de la base).
+
+*Sans l'intégration Vercel :* créez une base sur https://turso.tech et ajoutez vous-même `DATABASE_URL` (`libsql://…`) et `DATABASE_AUTH_TOKEN`.
 
 Pour donner accès à un collègue : mettez temporairement `ALLOW_SIGNUP=true`, ou créez son compte en ligne de commande (avec les variables de la base de production dans `.env`) :
 

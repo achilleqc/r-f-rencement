@@ -7,7 +7,7 @@ import "dotenv/config";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { eq } from "drizzle-orm";
-import { databaseAuthToken, databaseUrl } from "../src/db";
+import { databaseAuthToken, databaseUrl } from "../src/db/config";
 import * as schema from "../src/db/schema";
 import { hashPassword } from "../src/lib/auth-password";
 

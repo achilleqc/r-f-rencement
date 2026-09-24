@@ -1,10 +1,11 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SignJWT, jwtVerify } from "jose";
 import { count, eq } from "drizzle-orm";
-import { db } from "@/db";
+import { databaseAuthToken, db } from "@/db";
 import { users, type User } from "@/db/schema";
 
 export { hashPassword, verifyPassword } from "./auth-password";
@@ -14,13 +15,15 @@ const SESSION_DURATION_S = 60 * 60 * 24 * 30; // 30 jours
 
 function getSecret() {
   const secret = process.env.AUTH_SECRET;
-  if (!secret || secret.length < 32) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("AUTH_SECRET doit contenir au moins 32 caractères en production.");
-    }
-    return new TextEncoder().encode("dev-only-secret-change-me-dev-only-secret-change-me");
+  if (secret && secret.length >= 32 && !secret.startsWith("change-me")) return new TextEncoder().encode(secret);
+  // Sans AUTH_SECRET, la clé est dérivée du jeton de la base Turso : secrète et propre à
+  // chaque installation, elle évite une variable de plus à saisir lors du déploiement.
+  const dbToken = databaseAuthToken();
+  if (dbToken) return new TextEncoder().encode(createHash("sha256").update(`prospection-locale:session:${dbToken}`).digest("base64url"));
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("AUTH_SECRET doit contenir au moins 32 caractères en production.");
   }
-  return new TextEncoder().encode(secret);
+  return new TextEncoder().encode("dev-only-secret-change-me-dev-only-secret-change-me");
 }
 
 export async function createSession(userId: string) {
