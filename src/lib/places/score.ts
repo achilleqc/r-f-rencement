@@ -63,6 +63,20 @@ type ScoreInput = Pick<
   "source" | "website" | "socials" | "phone" | "hasOpeningHours" | "rating" | "reviewCount" | "photoCount"
 >;
 
+/**
+ * Présence web effective : le site renseigné ou, à défaut, la page réseau social connue
+ * (OpenStreetMap stocke souvent Facebook / Instagram à part du site).
+ */
+export function effectiveWebsite(place: Pick<Place, "website" | "socials">): WebsiteInfo {
+  const website = classifyWebsite(place.website);
+  if (website.kind !== "none") return website;
+  for (const url of place.socials) {
+    const social = classifyWebsite(url);
+    if (social.kind === "social") return social;
+  }
+  return website;
+}
+
 function websiteFactor(place: ScoreInput, website: WebsiteInfo): ScoreFactor {
   const base = { id: "website", label: "Site web" };
   switch (website.kind) {
@@ -76,23 +90,18 @@ function websiteFactor(place: ScoreInput, website: WebsiteInfo): ScoreFactor {
       return { ...base, penalty: PENALTIES.socialOnly, status: "bad", detail: `Seulement une page ${website.service}` };
     case "platform":
       return { ...base, penalty: PENALTIES.platformOnly, status: "bad", detail: `Seulement une fiche ${website.service}` };
-    case "none": {
-      const social = place.socials.length > 0 ? classifyWebsite(place.socials[0]) : null;
-      if (social && social.kind === "social") {
-        return { ...base, penalty: PENALTIES.socialOnly, status: "bad", detail: `Seulement une page ${social.service}` };
-      }
+    case "none":
       return {
         ...base,
         penalty: PENALTIES.noWebsite,
         status: "bad",
         detail: place.source === "osm" ? "Aucun site connu (à vérifier sur Google)" : "Aucun site web",
       };
-    }
   }
 }
 
 export function computeVisibilityScore(place: ScoreInput): VisibilityScore {
-  const website = classifyWebsite(place.website);
+  const website = effectiveWebsite(place);
   const factors: ScoreFactor[] = [websiteFactor(place, website)];
 
   // Avis Google

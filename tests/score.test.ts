@@ -37,6 +37,8 @@ describe("computeVisibilityScore", () => {
     const result = computeVisibilityScore({ ...base, website: null, socials: ["https://www.instagram.com/salon"] });
     expect(result.factors[0].detail).toContain("Instagram");
     expect(result.score).toBe(100 - PENALTIES.socialOnly);
+    // Le résumé affiché dans la liste doit dire la même chose que le score.
+    expect(result.website).toMatchObject({ kind: "social", service: "Instagram" });
   });
 
   it("additionne les pénalités d'une fiche Google pauvre", () => {

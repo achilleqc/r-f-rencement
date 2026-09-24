@@ -13,7 +13,7 @@ export function AuditResult({ audit }: { audit: SiteAudit }) {
         <span className={cn("font-bold", audit.passed === audit.total ? "text-success" : "text-ink")}>
           {audit.passed}/{audit.total} critères remplis
         </span>
-        <span className="text-muted"> · analysé le {date}</span>
+        <span className="text-muted" suppressHydrationWarning> · analysé le {date}</span>
       </p>
       <ul className="space-y-1.5 text-sm">
         {audit.checks.map((c) => (

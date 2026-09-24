@@ -140,7 +140,7 @@ export function ResultsView(props: Props) {
           </h1>
           <p className="truncate text-xs text-muted" title={props.locationLabel}>
             {formatDistance(radius)} autour de {props.locationLabel} · {props.sourceLabel}
-            {props.fromCache ? ` · résultats du ${cachedAt}` : ""}
+            {props.fromCache && <span suppressHydrationWarning> · résultats du {cachedAt}</span>}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
