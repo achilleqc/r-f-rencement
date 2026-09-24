@@ -1,0 +1,59 @@
+{
+  "version": 0.6,
+  "elements": [
+    {
+      "type": "node",
+      "id": 101,
+      "lat": 45.5017,
+      "lon": -73.5673,
+      "tags": {
+        "name": "Boulangerie Martin",
+        "shop": "bakery",
+        "addr:housenumber": "12",
+        "addr:street": "Rue Saint-Denis",
+        "addr:postcode": "H2X 3K8",
+        "addr:city": "Montréal",
+        "phone": "+1 514 555 0101",
+        "opening_hours": "Tu-Su 07:00-19:00"
+      }
+    },
+    {
+      "type": "way",
+      "id": 202,
+      "center": { "lat": 45.5025, "lon": -73.5661 },
+      "tags": {
+        "name": "Salon Julie",
+        "shop": "hairdresser",
+        "contact:facebook": "salonjulie"
+      }
+    },
+    {
+      "type": "node",
+      "id": 303,
+      "lat": 45.503,
+      "lon": -73.568,
+      "tags": {
+        "name": "Café Olimpico",
+        "amenity": "cafe",
+        "website": "www.cafeolimpico.com",
+        "phone": "+1 514 555 0303",
+        "opening_hours": "Mo-Su 07:00-23:00"
+      }
+    },
+    {
+      "type": "node",
+      "id": 404,
+      "lat": 45.5009,
+      "lon": -73.5701,
+      "tags": { "name": "Tim Hortons", "amenity": "fast_food", "brand": "Tim Hortons", "brand:wikidata": "Q175106" }
+    },
+    { "type": "node", "id": 505, "lat": 45.5, "lon": -73.57, "tags": { "shop": "convenience" } },
+    {
+      "type": "node",
+      "id": 101,
+      "lat": 45.5017,
+      "lon": -73.5673,
+      "tags": { "name": "Boulangerie Martin", "shop": "bakery" }
+    }
+  ]
+}
