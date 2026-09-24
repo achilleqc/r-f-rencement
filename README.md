@@ -97,7 +97,7 @@ Les **chaînes et franchises** (enseigne connue dans OSM, ou plusieurs commerces
 Aucune variable à saisir : la base de données Turso se branche en quelques clics et la clé des sessions en est dérivée automatiquement.
 
 1. Sur https://vercel.com, connectez-vous **avec votre compte GitHub**.
-2. **Add New… → Project** → à côté du dépôt `prospection-locale`, cliquez **Import**, puis **Deploy**.
+2. **Add New… → Project** → à côté du dépôt `r-f-rencement`, cliquez **Import**, puis **Deploy**.
 3. Ouvrez le site : il affiche « Dernière étape : connecter la base de données ». Dans le projet Vercel, onglet **Storage** → **Turso** → créez la base et connectez-la au projet.
 4. Onglet **Deployments** → menu **⋯** du dernier déploiement → **Redeploy**. Les tables sont créées automatiquement.
 5. Ouvrez le site et **créez tout de suite votre compte** : c'est le premier compte, les inscriptions se ferment ensuite.
